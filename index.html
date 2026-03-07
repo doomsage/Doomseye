@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DoomsEye | OSINT Intelligence Console</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="grid-overlay"></div>
+  <div class="app-shell">
+    <header class="topbar">
+      <div class="brand-wrap">
+        <h1>DOOMS<span>EYE</span></h1>
+        <p>Cyber Intelligence Recon Console</p>
+      </div>
+      <div class="status-strip">
+        <span class="pulse"></span> SYSTEM ONLINE
+      </div>
+    </header>
+
+    <p class="results-meta">Live mode: DoomsEye now performs real-time lookups and only displays evidence-backed outputs (no fabricated identity fields).</p>
+
+    <section class="radar-panel" aria-hidden="true">
+      <div class="radar"></div>
+      <div class="scan-lines"></div>
+    </section>
+
+    <main>
+      <section class="tabs" role="tablist" aria-label="OSINT Modules">
+        <button class="tab-btn active" data-tab="username" role="tab">Username Scanner</button>
+        <button class="tab-btn" data-tab="phone" role="tab">Phone Number Scanner</button>
+        <button class="tab-btn" data-tab="email" role="tab">Email Scanner</button>
+      </section>
+
+      <section class="module active" id="username-module">
+        <h2>Username Intelligence</h2>
+        <form id="username-form" class="scan-form">
+          <input type="text" id="username-input" placeholder="Enter username (e.g., kunal)" required />
+          <button type="submit">Initiate Recon</button>
+        </form>
+        <div class="filters">
+          <label for="score-filter">Minimum Match Score</label>
+          <input type="range" min="0" max="100" value="0" id="score-filter" />
+          <span id="score-filter-value">0%</span>
+        </div>
+        <div class="results-meta" id="username-meta"></div>
+        <div class="results-grid" id="username-results"></div>
+      </section>
+
+      <section class="module" id="phone-module">
+        <h2>Phone Number Intelligence</h2>
+        <form id="phone-form" class="scan-form">
+          <input type="tel" id="phone-input" placeholder="Enter number (e.g., +91XXXXXXXXXX)" required />
+          <button type="submit">Run Phone Recon</button>
+        </form>
+        <div class="results-meta" id="phone-meta"></div>
+        <div class="results-grid" id="phone-results"></div>
+      </section>
+
+      <section class="module" id="email-module">
+        <h2>Email Intelligence</h2>
+        <form id="email-form" class="scan-form">
+          <input type="email" id="email-input" placeholder="Enter email (e.g., kunaldev@gmail.com)" required />
+          <button type="submit">Analyze Email</button>
+        </form>
+        <div class="results-meta" id="email-meta"></div>
+        <div class="results-grid" id="email-results"></div>
+      </section>
+
+      <section class="console-section">
+        <div class="console-header">
+          <h3>Realtime Scan Console</h3>
+          <button id="clear-console" class="ghost-btn">Clear</button>
+        </div>
+        <pre id="scan-console" class="scan-console" aria-live="polite"></pre>
+      </section>
+
+      <section class="summary" id="summary-panel">
+        <h3>OSINT Report Summary</h3>
+        <div class="summary-grid" id="summary-grid">
+          <div><span>Platforms Checked</span><strong>0</strong></div>
+          <div><span>Exact Matches Found</span><strong>0</strong></div>
+          <div><span>Similar Matches Found</span><strong>0</strong></div>
+          <div><span>Possible Identities</span><strong>0</strong></div>
+          <div><span>Scan Time</span><strong>0 ms</strong></div>
+        </div>
+        <button id="export-json" class="ghost-btn">Export Report as JSON</button>
+      </section>
+    </main>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
