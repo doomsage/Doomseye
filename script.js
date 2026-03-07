@@ -19,6 +19,7 @@ const platformPatterns = [
 const state = {
   report: { module: 'username', generatedAt: null, summary: {}, results: [] },
   usernameCache: [],
+  scanning: false,
 };
 
 const tabs = document.querySelectorAll('.tab-btn');
@@ -32,21 +33,19 @@ const logs = {
   username: [
     'Initializing Doomseye scanner...',
     'Loading live platform connectors...',
-    'Validating exact usernames...',
-    'Checking username variations...',
+    'Checking exact handles + variations...',
+    'Running parallel profile verification...',
     'Compiling evidence-backed report...',
   ],
   phone: [
-    'Initializing telecom intelligence module...',
-    'Normalizing phone input...',
-    'Generating verifiable OSINT pivots...',
-    'Building web-trace query set...',
+    'Initializing phone intelligence...',
+    'Calling backend OSINT pivots...',
+    'Applying real-data only policy...',
   ],
   email: [
     'Initializing email intelligence module...',
-    'Extracting mailbox and domain data...',
-    'Running live DNS intelligence lookup...',
-    'Generating pivot usernames and links...',
+    'Collecting DNS & account pivots...',
+    'Launching username recon from email local-part...',
   ],
 };
 
@@ -68,7 +67,7 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 async function simulatedLogSequence(lines) {
   for (const line of lines) {
     logLine(line);
-    await delay(220);
+    await delay(180);
   }
 }
 
@@ -78,19 +77,23 @@ function normalizeUsername(value) {
 
 function generateUsernameVariations(base) {
   const b = normalizeUsername(base);
-  const out = new Set([
+  const set = new Set([
     b,
     `${b}_`,
     `${b}.dev`,
     `${b}_official`,
     `${b}01`,
     `${b}123`,
+    `${b}.x`,
     b.replace(/\./g, '_'),
     b.replace(/_/g, '.'),
     b.replace(/a/g, '4').replace(/o/g, '0'),
   ]);
-  if (b.length > 3) out.add(`${b.slice(0, -1)}_`);
-  return [...out].filter(Boolean).slice(0, 12);
+  if (b.length > 3) {
+    set.add(`${b.slice(0, -1)}_`);
+    set.add(`${b.slice(0, -1)}1`);
+  }
+  return [...set].filter(Boolean).slice(0, 10);
 }
 
 function levenshtein(a, b) {
@@ -131,6 +134,19 @@ function renderUsernameResults(results) {
   const threshold = Number(scoreFilter.value);
   const filtered = results.filter((r) => r.matchScore >= threshold);
 
+  if (!filtered.length) {
+    meta.textContent = 'No verified profile detected yet. Try another handle/variation.';
+    return;
+  }
+
+  const openTopBtn = document.createElement('button');
+  openTopBtn.className = 'ghost-btn';
+  openTopBtn.textContent = 'Open Top 5 Results';
+  openTopBtn.addEventListener('click', () => {
+    filtered.slice(0, 5).forEach((item) => window.open(item.url, '_blank', 'noopener'));
+  });
+  container.appendChild(openTopBtn);
+
   filtered.forEach((r) => {
     container.appendChild(createCard(`
       <h4>${r.icon} ${r.platform}</h4>
@@ -151,112 +167,90 @@ async function checkProfile(platform, username) {
   return resp.json();
 }
 
-async function runUsernameScan(input, options = { append: false }) {
-  const started = performance.now();
-  const username = normalizeUsername(input);
-  if (!username) return;
+async function runWithConcurrency(tasks, limit = 6) {
+  const out = [];
+  let index = 0;
 
-  await simulatedLogSequence(logs.username);
-
-  const variations = generateUsernameVariations(username);
-  const checks = [];
-
-  for (const platform of platformPatterns) {
-    for (const variant of variations) {
-      const apiResult = await checkProfile(platform, variant);
-      if (apiResult.exists) {
-        checks.push({
-          platform: platform.name,
-          icon: platform.icon,
-          detectedUsername: variant,
-          matchScore: similarityScore(username, variant),
-          url: apiResult.url,
-          exists: true,
-          confidence: apiResult.confidence || 'medium',
-        });
+  async function worker() {
+    while (index < tasks.length) {
+      const i = index++;
+      try {
+        out[i] = await tasks[i]();
+      } catch (error) {
+        out[i] = { exists: null, error: String(error.message || error) };
       }
-      if (variant === username) break;
     }
   }
 
-  checks.sort((a, b) => b.matchScore - a.matchScore);
+  const workers = Array.from({ length: Math.min(limit, tasks.length) }, () => worker());
+  await Promise.all(workers);
+  return out;
+}
 
-  if (!options.append) {
-    state.usernameCache = checks;
-  } else {
-    state.usernameCache = [...state.usernameCache, ...checks].filter((r, i, arr) => arr.findIndex((x) => x.url === r.url) === i).sort((a, b) => b.matchScore - a.matchScore);
+async function runUsernameScan(input, options = { append: false }) {
+  if (state.scanning) {
+    logLine('A scan is already running. Please wait...');
+    return;
   }
 
-  renderUsernameResults(state.usernameCache);
-
-  const summary = {
-    platformsChecked: platformPatterns.length,
-    exactMatches: state.usernameCache.filter((r) => r.matchScore === 100).length,
-    similarMatches: state.usernameCache.filter((r) => r.matchScore < 100).length,
-    identities: new Set(state.usernameCache.map((r) => r.detectedUsername)).size,
-    scanTimeMs: Math.round(performance.now() - started),
-  };
-  updateSummary(summary);
-
-  state.report = { module: 'username', generatedAt: new Date().toISOString(), input: username, variations, summary, results: state.usernameCache };
-}
-
-function detectCountry(number) {
-  const map = [['+1', 'United States/Canada'], ['+44', 'United Kingdom'], ['+91', 'India'], ['+61', 'Australia'], ['+81', 'Japan'], ['+49', 'Germany'], ['+33', 'France'], ['+971', 'UAE']];
-  return map.find(([prefix]) => number.startsWith(prefix))?.[1] || 'Unknown';
-}
-
-async function runPhoneScan(input) {
+  state.scanning = true;
   const started = performance.now();
-  const clean = input.trim();
-  const number = clean.startsWith('+') ? clean : `+${clean.replace(/^0+/, '')}`;
-  const digits = number.replace(/\D/g, '');
+  const username = normalizeUsername(input);
+  if (!username) {
+    state.scanning = false;
+    return;
+  }
 
-  await simulatedLogSequence(logs.phone);
+  try {
+    await simulatedLogSequence(logs.username);
 
-  const queries = [
-    `"${number}"`,
-    `"${number}" site:facebook.com`,
-    `"${number}" site:linkedin.com`,
-    `"${number}" site:twitter.com`,
-    `"${number}" site:pastebin.com`,
-  ];
+    const variations = generateUsernameVariations(username);
+    const tasks = [];
 
-  const links = [
-    { title: 'Google Search', url: `https://www.google.com/search?q=${encodeURIComponent(number)}` },
-    { title: 'DuckDuckGo Search', url: `https://duckduckgo.com/?q=${encodeURIComponent(number)}` },
-    { title: 'WhatsApp Click-to-Chat', url: `https://wa.me/${digits}` },
-    { title: 'Telegram Global Search', url: `https://t.me/s/${encodeURIComponent(number)}` },
-    { title: 'Truecaller Web', url: `https://www.truecaller.com/search/in/${digits}` },
-  ];
+    for (const platform of platformPatterns) {
+      for (const variant of variations) {
+        tasks.push(async () => {
+          const api = await checkProfile(platform, variant);
+          if (!api.exists) return null;
+          return {
+            platform: platform.name,
+            icon: platform.icon,
+            detectedUsername: variant,
+            matchScore: similarityScore(username, variant),
+            url: api.url,
+            exists: true,
+            confidence: api.confidence || 'medium',
+          };
+        });
+      }
+    }
 
-  const container = document.getElementById('phone-results');
-  const meta = document.getElementById('phone-meta');
-  container.innerHTML = '';
+    const checks = (await runWithConcurrency(tasks, 8)).filter(Boolean).sort((a, b) => b.matchScore - a.matchScore);
 
-  container.appendChild(createCard(`
-    <h4>📱 Phone Intelligence Snapshot (Real pivots only)</h4>
-    <p><strong>Phone Number:</strong> ${number}</p>
-    <p><strong>Country:</strong> ${detectCountry(number)}</p>
-    <p><strong>Digit Length:</strong> ${digits.length}</p>
-    <p><strong>Note:</strong> No guessed names/emails shown. Use links below for verifiable evidence.</p>
-  `));
+    if (!options.append) {
+      state.usernameCache = checks;
+    } else {
+      state.usernameCache = [...state.usernameCache, ...checks]
+        .filter((r, i, arr) => arr.findIndex((x) => x.url === r.url) === i)
+        .sort((a, b) => b.matchScore - a.matchScore);
+    }
 
-  container.appendChild(createCard(`
-    <h4>🔎 Suggested OSINT Queries</h4>
-    ${queries.map((q) => `<p><code>${q}</code></p>`).join('')}
-  `));
+    renderUsernameResults(state.usernameCache);
 
-  container.appendChild(createCard(`
-    <h4>🧭 Investigation Links</h4>
-    ${links.map((l) => `<p><a target="_blank" rel="noopener" href="${l.url}">${l.title}</a></p>`).join('')}
-  `));
+    const summary = {
+      platformsChecked: platformPatterns.length,
+      exactMatches: state.usernameCache.filter((r) => r.matchScore === 100).length,
+      similarMatches: state.usernameCache.filter((r) => r.matchScore < 100).length,
+      identities: new Set(state.usernameCache.map((r) => r.detectedUsername)).size,
+      scanTimeMs: Math.round(performance.now() - started),
+    };
 
-  meta.textContent = 'Real-output mode: only direct search pivots and formatting intelligence.';
-
-  const summary = { platformsChecked: links.length, exactMatches: 0, similarMatches: queries.length, identities: 0, scanTimeMs: Math.round(performance.now() - started) };
-  updateSummary(summary);
-  state.report = { module: 'phone', generatedAt: new Date().toISOString(), input: number, summary, result: { country: detectCountry(number), queries, links } };
+    updateSummary(summary);
+    state.report = { module: 'username', generatedAt: new Date().toISOString(), input: username, variations, summary, results: state.usernameCache };
+    logLine(`Username scan complete: ${state.usernameCache.length} verified profile hits.`);
+  } finally {
+    state.scanning = false;
+  }
 }
 
 function emailUserVariants(user) {
@@ -267,6 +261,87 @@ function emailUserVariants(user) {
 async function lookupDomain(domain) {
   const res = await fetch(`/api/domain-info?domain=${encodeURIComponent(domain)}`);
   return res.json();
+}
+
+async function runPhoneScan(input) {
+  const started = performance.now();
+  const number = input.trim();
+  if (!number) return;
+
+  await simulatedLogSequence(logs.phone);
+
+  const truecallerKey = localStorage.getItem('doomseye_truecaller_key') || '';
+  const params = new URLSearchParams({ number });
+  if (truecallerKey) params.set('truecallerKey', truecallerKey);
+
+  const res = await fetch(`/api/phone-intel?${params}`);
+  const data = await res.json();
+
+  const container = document.getElementById('phone-results');
+  const meta = document.getElementById('phone-meta');
+  container.innerHTML = '';
+
+  if (data.error) {
+    meta.textContent = 'Phone intelligence failed. Please enter a valid number.';
+    return;
+  }
+
+  const saveKeyCard = createCard(`
+    <h4>🔐 Optional Truecaller API</h4>
+    <p>Paste your own API key (stored locally in your browser). This is optional.</p>
+    <input id="truecaller-key-input" placeholder="Enter Truecaller/RapidAPI key" style="width:100%;margin:6px 0;padding:8px;background:#050505;border:1px solid #1d3f31;color:#00ff9f;" />
+    <button id="save-tc-key" class="ghost-btn">Save Key</button>
+  `);
+  container.appendChild(saveKeyCard);
+
+  container.appendChild(createCard(`
+    <h4>📱 Real Phone Intelligence</h4>
+    <p><strong>Input:</strong> ${data.normalized.input}</p>
+    <p><strong>E.164:</strong> ${data.normalized.e164}</p>
+    <p><strong>Country:</strong> ${data.country}</p>
+    <p><strong>Truecaller:</strong> ${data.truecaller.enabled ? (data.truecaller.ok ? 'Response received' : `Lookup failed (${data.truecaller.error || data.truecaller.status})`) : 'Disabled (no key)'} </p>
+  `));
+
+  container.appendChild(createCard(`
+    <h4>🔎 Suggested OSINT Queries</h4>
+    ${data.queries.map((q) => `<p><code>${q}</code></p>`).join('')}
+  `));
+
+  container.appendChild(createCard(`
+    <h4>🧭 Investigation Links (open in new tab)</h4>
+    ${data.links.map((l) => `<p><a target="_blank" rel="noopener" href="${l.url}">${l.title}</a></p>`).join('')}
+  `));
+
+  if (data.truecaller.enabled && data.truecaller.ok) {
+    container.appendChild(createCard(`
+      <h4>📡 Truecaller Raw Result</h4>
+      <pre style="white-space:pre-wrap;max-height:220px;overflow:auto;">${escapeHtml(JSON.stringify(data.truecaller.data, null, 2))}</pre>
+    `));
+  }
+
+  meta.textContent = 'Phone recon complete. Results are real pivots + optional API-backed enrichment.';
+
+  const summary = {
+    platformsChecked: data.links.length,
+    exactMatches: 0,
+    similarMatches: data.queries.length,
+    identities: data.truecaller.ok ? 1 : 0,
+    scanTimeMs: Math.round(performance.now() - started),
+  };
+  updateSummary(summary);
+
+  state.report = { module: 'phone', generatedAt: new Date().toISOString(), input: number, summary, result: data };
+
+  const keyInput = document.getElementById('truecaller-key-input');
+  const saveBtn = document.getElementById('save-tc-key');
+  if (keyInput) keyInput.value = truecallerKey;
+  if (saveBtn) {
+    saveBtn.addEventListener('click', () => {
+      const value = (keyInput.value || '').trim();
+      localStorage.setItem('doomseye_truecaller_key', value);
+      logLine(value ? 'Truecaller key saved locally. Re-run phone scan.' : 'Truecaller key cleared.');
+    });
+  }
 }
 
 async function runEmailScan(input) {
@@ -282,32 +357,34 @@ async function runEmailScan(input) {
   container.innerHTML = '';
 
   const domainInfo = await lookupDomain(domain);
-  const hash = md5(email);
+  const gh = await fetch(`/api/gravatar-hash?email=${encodeURIComponent(email)}`).then((r) => r.json()).catch(() => ({ hash: '' }));
+  const hash = gh.hash || '';
   const whoisLink = `https://who.is/whois/${domain}`;
   const gravatarLink = `https://www.gravatar.com/avatar/${hash}?d=404`;
+  const googleEmail = `https://www.google.com/search?q=${encodeURIComponent('"' + email + '"')}`;
   const variants = emailUserVariants(username);
 
   container.appendChild(createCard(`
-    <h4>📧 Email Intelligence Snapshot (Live data)</h4>
+    <h4>📧 Email Intelligence (Real signals)</h4>
     <p><strong>Email:</strong> ${email}</p>
-    <p><strong>Extracted Username:</strong> ${username}</p>
     <p><strong>Domain:</strong> ${domain}</p>
     <p><strong>MX Records:</strong> ${(domainInfo.mxRecords || []).join(' | ') || 'None resolved'}</p>
     <p><strong>TXT Records:</strong> ${(domainInfo.txtRecords || []).slice(0, 3).join(' | ') || 'None resolved'}</p>
     <p><strong>WHOIS:</strong> <a target="_blank" rel="noopener" href="${whoisLink}">${whoisLink}</a></p>
     <p><strong>Gravatar Probe:</strong> <a target="_blank" rel="noopener" href="${gravatarLink}">${gravatarLink}</a></p>
+    <p><strong>Google Dork:</strong> <a target="_blank" rel="noopener" href="${googleEmail}">Search this email</a></p>
   `));
 
   container.appendChild(createCard(`
     <h4>🧬 Username Pivots from Email</h4>
-    ${variants.map((v) => `<p>${v}</p>`).join('')}
+    ${variants.map((v) => `<p><a target="_blank" rel="noopener" href="https://www.google.com/search?q=${encodeURIComponent(v)}">${v}</a></p>`).join('')}
   `));
 
-  meta.textContent = 'Real-output mode: DNS + public pivot links, no fabricated personal details.';
+  meta.textContent = 'Email recon complete. Links open in new tab for direct investigation.';
 
   state.usernameCache = [];
-  for (const v of variants.slice(0, 3)) {
-    await runUsernameScan(v, { append: true });
+  for (const variant of variants.slice(0, 3)) {
+    await runUsernameScan(variant, { append: true });
   }
 
   const summary = {
@@ -317,50 +394,13 @@ async function runEmailScan(input) {
     identities: new Set(state.usernameCache.map((r) => r.detectedUsername)).size,
     scanTimeMs: Math.round(performance.now() - started),
   };
-  updateSummary(summary);
 
-  state.report = {
-    module: 'email',
-    generatedAt: new Date().toISOString(),
-    input: email,
-    summary,
-    result: { username, domain, domainInfo, whoisLink, gravatarLink, variants, usernameResults: state.usernameCache },
-  };
+  updateSummary(summary);
+  state.report = { module: 'email', generatedAt: new Date().toISOString(), input: email, summary, result: { username, domain, domainInfo, whoisLink, gravatarLink, variants, usernameResults: state.usernameCache } };
 }
 
-function md5(input) {
-  const hc = '0123456789abcdef';
-  function rh(n) { let s = ''; for (let j = 0; j <= 3; j++) s += hc.charAt((n >> (j * 8 + 4)) & 0x0f) + hc.charAt((n >> (j * 8)) & 0x0f); return s; }
-  function ad(x, y) { const l = (x & 0xffff) + (y & 0xffff); const m = (x >> 16) + (y >> 16) + (l >> 16); return (m << 16) | (l & 0xffff); }
-  function rl(n, c) { return (n << c) | (n >>> (32 - c)); }
-  function cm(q, a, b, x, s, t) { return ad(rl(ad(ad(a, q), ad(x, t)), s), b); }
-  function ff(a, b, c, d, x, s, t) { return cm((b & c) | ((~b) & d), a, b, x, s, t); }
-  function gg(a, b, c, d, x, s, t) { return cm((b & d) | (c & (~d)), a, b, x, s, t); }
-  function hh(a, b, c, d, x, s, t) { return cm(b ^ c ^ d, a, b, x, s, t); }
-  function ii(a, b, c, d, x, s, t) { return cm(c ^ (b | (~d)), a, b, x, s, t); }
-  function sb(x) { let i; const nblk = ((x.length + 8) >> 6) + 1; const blks = new Array(nblk * 16).fill(0); for (i = 0; i < x.length; i++) blks[i >> 2] |= x.charCodeAt(i) << ((i % 4) * 8); blks[i >> 2] |= 0x80 << ((i % 4) * 8); blks[nblk * 16 - 2] = x.length * 8; return blks; }
-  let x = sb(unescape(encodeURIComponent(input))); let a = 0x67452301; let b = 0xefcdab89; let c = 0x98badcfe; let d = 0x10325476;
-  for (let i = 0; i < x.length; i += 16) {
-    const oa = a, ob = b, oc = c, od = d;
-    a = ff(a, b, c, d, x[i], 7, -680876936); d = ff(d, a, b, c, x[i + 1], 12, -389564586); c = ff(c, d, a, b, x[i + 2], 17, 606105819); b = ff(b, c, d, a, x[i + 3], 22, -1044525330);
-    a = ff(a, b, c, d, x[i + 4], 7, -176418897); d = ff(d, a, b, c, x[i + 5], 12, 1200080426); c = ff(c, d, a, b, x[i + 6], 17, -1473231341); b = ff(b, c, d, a, x[i + 7], 22, -45705983);
-    a = ff(a, b, c, d, x[i + 8], 7, 1770035416); d = ff(d, a, b, c, x[i + 9], 12, -1958414417); c = ff(c, d, a, b, x[i + 10], 17, -42063); b = ff(b, c, d, a, x[i + 11], 22, -1990404162);
-    a = ff(a, b, c, d, x[i + 12], 7, 1804603682); d = ff(d, a, b, c, x[i + 13], 12, -40341101); c = ff(c, d, a, b, x[i + 14], 17, -1502002290); b = ff(b, c, d, a, x[i + 15], 22, 1236535329);
-    a = gg(a, b, c, d, x[i + 1], 5, -165796510); d = gg(d, a, b, c, x[i + 6], 9, -1069501632); c = gg(c, d, a, b, x[i + 11], 14, 643717713); b = gg(b, c, d, a, x[i], 20, -373897302);
-    a = gg(a, b, c, d, x[i + 5], 5, -701558691); d = gg(d, a, b, c, x[i + 10], 9, 38016083); c = gg(c, d, a, b, x[i + 15], 14, -660478335); b = gg(b, c, d, a, x[i + 4], 20, -405537848);
-    a = gg(a, b, c, d, x[i + 9], 5, 568446438); d = gg(d, a, b, c, x[i + 14], 9, -1019803690); c = gg(c, d, a, b, x[i + 3], 14, -187363961); b = gg(b, c, d, a, x[i + 8], 20, 1163531501);
-    a = gg(a, b, c, d, x[i + 13], 5, -1444681467); d = gg(d, a, b, c, x[i + 2], 9, -51403784); c = gg(c, d, a, b, x[i + 7], 14, 1735328473); b = gg(b, c, d, a, x[i + 12], 20, -1926607734);
-    a = hh(a, b, c, d, x[i + 5], 4, -378558); d = hh(d, a, b, c, x[i + 8], 11, -2022574463); c = hh(c, d, a, b, x[i + 11], 16, 1839030562); b = hh(b, c, d, a, x[i + 14], 23, -35309556);
-    a = hh(a, b, c, d, x[i + 1], 4, -1530992060); d = hh(d, a, b, c, x[i + 4], 11, 1272893353); c = hh(c, d, a, b, x[i + 7], 16, -155497632); b = hh(b, c, d, a, x[i + 10], 23, -1094730640);
-    a = hh(a, b, c, d, x[i + 13], 4, 681279174); d = hh(d, a, b, c, x[i], 11, -358537222); c = hh(c, d, a, b, x[i + 3], 16, -722521979); b = hh(b, c, d, a, x[i + 6], 23, 76029189);
-    a = hh(a, b, c, d, x[i + 9], 4, -640364487); d = hh(d, a, b, c, x[i + 12], 11, -421815835); c = hh(c, d, a, b, x[i + 15], 16, 530742520); b = hh(b, c, d, a, x[i + 2], 23, -995338651);
-    a = ii(a, b, c, d, x[i], 6, -198630844); d = ii(d, a, b, c, x[i + 7], 10, 1126891415); c = ii(c, d, a, b, x[i + 14], 15, -1416354905); b = ii(b, c, d, a, x[i + 5], 21, -57434055);
-    a = ii(a, b, c, d, x[i + 12], 6, 1700485571); d = ii(d, a, b, c, x[i + 3], 10, -1894986606); c = ii(c, d, a, b, x[i + 10], 15, -1051523); b = ii(b, c, d, a, x[i + 1], 21, -2054922799);
-    a = ii(a, b, c, d, x[i + 8], 6, 1873313359); d = ii(d, a, b, c, x[i + 15], 10, -30611744); c = ii(c, d, a, b, x[i + 6], 15, -1560198380); b = ii(b, c, d, a, x[i + 13], 21, 1309151649);
-    a = ii(a, b, c, d, x[i + 4], 6, -145523070); d = ii(d, a, b, c, x[i + 11], 10, -1120210379); c = ii(c, d, a, b, x[i + 2], 15, 718787259); b = ii(b, c, d, a, x[i + 9], 21, -343485551);
-    a = ad(a, oa); b = ad(b, ob); c = ad(c, oc); d = ad(d, od);
-  }
-  return [a, b, c, d].map(rh).join('');
+function escapeHtml(str) {
+  return String(str).replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;');
 }
 
 document.getElementById('username-form').addEventListener('submit', (e) => { e.preventDefault(); runUsernameScan(document.getElementById('username-input').value); });
@@ -391,4 +431,4 @@ document.getElementById('export-json').addEventListener('click', () => {
   logLine('Report exported as JSON.');
 });
 
-logLine('DoomsEye console booted in REAL-OUTPUT mode (no fabricated identity fields).');
+logLine('DoomsEye booted. Real OSINT mode enabled.');
