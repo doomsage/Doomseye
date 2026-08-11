@@ -152,3 +152,108 @@ h3 { font-size: 1.6rem; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; scroll-behavior: auto !important; transition: none !important; }
 }
+
+.brand-mark img, .logo-orbit img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+}
+
+.logo-orbit {
+  padding: clamp(34px, 7vw, 72px);
+}
+
+.scrolly {
+  width: min(1180px, calc(100% - 32px));
+  min-height: 220vh;
+  margin: 0 auto;
+  position: relative;
+  padding: 120px 0;
+}
+
+#premium-canvas {
+  position: sticky;
+  top: 0;
+  width: 100%;
+  height: 100vh;
+  display: block;
+  border-radius: 42px;
+  background: radial-gradient(circle at center, rgba(246, 211, 107, .13), rgba(7, 6, 4, .88) 58%);
+  box-shadow: inset 0 0 90px rgba(246, 211, 107, .08), var(--shadow);
+}
+
+.scrolly-copy {
+  position: sticky;
+  top: 112px;
+  z-index: 2;
+  width: min(640px, 92%);
+  padding: clamp(22px, 4vw, 42px);
+  margin-top: -92vh;
+  border: 1px solid var(--border);
+  border-radius: 34px;
+  background: rgba(12, 10, 7, .68);
+  backdrop-filter: blur(20px);
+  box-shadow: var(--shadow);
+}
+
+.scrolly-copy p:last-child {
+  color: var(--muted);
+  font-size: 1.15rem;
+  line-height: 1.75;
+}
+
+.story-rail {
+  position: relative;
+  z-index: 3;
+  display: grid;
+  gap: 34vh;
+  width: min(520px, 92%);
+  margin: 34vh 0 0 auto;
+  padding-bottom: 20vh;
+}
+
+.story-card {
+  border: 1px solid rgba(246, 211, 107, .38);
+  border-radius: 30px;
+  padding: clamp(22px, 4vw, 36px);
+  background: linear-gradient(145deg, rgba(31, 24, 13, .92), rgba(8, 7, 5, .86));
+  box-shadow: var(--shadow);
+  transform-origin: center;
+}
+
+.story-card span {
+  color: var(--gold);
+  font: 900 1.05rem "Share Tech Mono", monospace;
+}
+
+.story-card p {
+  color: var(--muted);
+  line-height: 1.7;
+}
+
+@media (max-width: 920px) {
+  .scrolly {
+    min-height: auto;
+    padding: 80px 0;
+  }
+
+  #premium-canvas {
+    position: absolute;
+    inset: 0;
+    height: 100%;
+    opacity: .42;
+  }
+
+  .scrolly-copy {
+    position: relative;
+    top: auto;
+    margin: 0 auto 24px;
+  }
+
+  .story-rail {
+    gap: 18px;
+    margin: 0 auto;
+    padding-bottom: 0;
+  }
+}
