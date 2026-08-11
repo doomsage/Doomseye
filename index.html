@@ -3,96 +3,221 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>DoomsEye | OSINT Intelligence Console</title>
+  <meta name="description" content="Doomsage Web Solutions builds premium custom websites, lead-generation funnels, SEO-ready multi-page sites, and mobile-first digital identities." />
+  <title>Doomsage Web Solutions | Premium Web Design & Development</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/locomotive-scroll@4.1.4/dist/locomotive-scroll.min.css" />
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
-  <div class="grid-overlay"></div>
-  <div class="app-shell">
-    <header class="topbar">
-      <div class="brand-wrap">
-        <h1>DOOMS<span>EYE</span></h1>
-        <p>Cyber Intelligence Recon Console</p>
-      </div>
-      <div class="status-strip">
-        <span class="pulse"></span> SYSTEM ONLINE
-      </div>
-    </header>
+  <div class="noise"></div>
+  <div class="cursor-glow" aria-hidden="true"></div>
+  <header class="site-header">
+    <a class="brand" href="#home" aria-label="Doomsage home">
+      <span class="brand-mark"><img src="doomsage.png" alt="Doomsage logo"></span>
+      <span><strong>Doomsage</strong><small>Web Solutions</small></span>
+    </a>
+    <button class="menu-toggle" aria-label="Open menu" aria-expanded="false">☰</button>
+    <nav class="nav-links" aria-label="Main navigation">
+      <a href="#home">Home</a>
+      <a href="#services">Services</a>
+      <a href="#experience">Experience</a>
+      <a href="#plans">Plans</a>
+      <a href="#process">Process</a>
+      <a href="#policies">Policies</a>
+      <a class="nav-cta" href="#contact">Get Quote</a>
+    </nav>
+  </header>
 
-    <p class="results-meta">Live mode: DoomsEye now performs real-time lookups and only displays evidence-backed outputs (no fabricated identity fields).</p>
-
-    <section class="radar-panel" aria-hidden="true">
-      <div class="radar"></div>
-      <div class="scan-lines"></div>
+  <main id="home">
+    <section class="hero section page" data-page="Home">
+      <div class="luxury-shapes" aria-hidden="true"></div>
+      <div class="hero-copy reveal">
+        <p class="eyebrow">Premium Web Design & Development Services</p>
+        <h1>Premium websites that make customers trust you instantly.</h1>
+        <p class="hero-text">We design polished, conversion-focused websites with smooth motion, clear messaging, and mobile-first layouts that make your business look established from day one.</p>
+        <div class="hero-actions">
+          <a class="btn primary" href="https://wa.me/919202800425" target="_blank" rel="noopener">WhatsApp Now</a>
+          <a class="btn secondary" href="#plans">View Packages</a>
+        </div>
+        <div class="hero-stats" aria-label="Service highlights">
+          <span><strong>24/7</strong> Digital salesman</span>
+          <span><strong>100%</strong> Custom-coded</span>
+          <span><strong>3+</strong> Premium plans</span>
+        </div>
+      </div>
+      <div class="hero-orb reveal" aria-hidden="true">
+        <div class="logo-orbit"><img src="doomsage.png" alt="Doomsage logo placeholder"></div>
+        <div class="scan-ring"></div>
+        <div class="floating-card card-a">Google Ready</div>
+        <div class="floating-card card-b">Quote Forms</div>
+        <div class="floating-card card-c">Mobile Luxury</div>
+      </div>
     </section>
 
-    <main>
-      <section class="tabs" role="tablist" aria-label="OSINT Modules">
-        <button class="tab-btn active" data-tab="username" role="tab">Username Scanner</button>
-        <button class="tab-btn" data-tab="phone" role="tab">Phone Number Scanner</button>
-        <button class="tab-btn" data-tab="email" role="tab">Email Scanner</button>
-      </section>
+    <section id="services" class="section split page" data-page="Services">
+      <div class="section-heading reveal">
+        <p class="eyebrow">Why settle for average?</p>
+        <h2>Your website should sell while you sleep.</h2>
+      </div>
+      <div class="premium-card reveal">
+        <p>In today’s digital world, your website is your digital salesman working 24/7. We don’t use cheap, slow templates. We craft elegant, high-end experiences that guide visitors from first impression to enquiry without confusion.</p>
+        <ul class="check-grid">
+          <li>Fast loading speeds</li>
+          <li>App-like mobile experience</li>
+          <li>Modern premium designs</li>
+          <li>Clean & reliable setup</li>
+          <li>SEO and lead generation</li>
+          <li>WhatsApp and call actions</li>
+        </ul>
+      </div>
+    </section>
 
-      <section class="module active" id="username-module">
-        <h2>Username Intelligence</h2>
-        <form id="username-form" class="scan-form">
-          <input type="text" id="username-input" placeholder="Enter username (e.g., kunal)" required />
-          <button type="submit">Initiate Recon</button>
-        </form>
-        <div class="filters">
-          <label for="score-filter">Minimum Match Score</label>
-          <input type="range" min="0" max="100" value="0" id="score-filter" />
-          <span id="score-filter-value">0%</span>
+
+    <section id="experience" class="scrolly page" data-page="Experience">
+      <canvas id="premium-canvas" aria-hidden="true"></canvas>
+      <div class="scrolly-copy">
+        <p class="eyebrow">Cinematic scroll experience</p>
+        <h2>Not a boring landing page. A premium brand journey.</h2>
+        <p>As visitors scroll, the page guides them like a story: attention, trust, offer, proof, and conversion.</p>
+      </div>
+      <div class="story-rail" aria-label="Website experience story">
+        <article class="story-card" data-scene="01">
+          <span>01</span>
+          <h3>First impression</h3>
+          <p>Luxury visuals, confident copy, and smooth movement make the business feel established instantly.</p>
+        </article>
+        <article class="story-card" data-scene="02">
+          <span>02</span>
+          <h3>Trust building</h3>
+          <p>Service benefits, package clarity, and clean layouts make customers understand the offer fast.</p>
+        </article>
+        <article class="story-card" data-scene="03">
+          <span>03</span>
+          <h3>Lead conversion</h3>
+          <p>Sticky WhatsApp, call buttons, quote CTAs, and mobile-first sections push visitors to contact you.</p>
+        </article>
+      </div>
+    </section>
+
+    <section id="plans" class="section page" data-page="Plans">
+      <div class="section-heading center reveal">
+        <p class="eyebrow">Choose your upgrade</p>
+        <h2>Packages for every growth stage.</h2>
+      </div>
+      <div class="pricing-grid">
+        <article class="price-card reveal">
+          <span class="ribbon">Starter</span>
+          <h3>Starter Plan</h3>
+          <p class="subtitle">Digital Identity</p>
+          <p class="price">₹5k - ₹7k</p>
+          <p class="timeline">3 - 5 Days</p>
+          <ul>
+            <li>One-page premium landing page</li>
+            <li>Home, About, Services, Contact sections</li>
+            <li>Mobile responsive for phones and tablets</li>
+            <li>Floating WhatsApp & Call Now buttons</li>
+            <li>Embedded Google Maps</li>
+            <li>Gallery up to 8 product images</li>
+          </ul>
+          <a class="btn secondary" href="#contact">Start Small</a>
+        </article>
+
+        <article class="price-card featured reveal">
+          <span class="ribbon">Popular</span>
+          <h3>Growth Plan</h3>
+          <p class="subtitle">Business Professional</p>
+          <p class="price">₹12k - ₹15k</p>
+          <p class="timeline">7 - 10 Days</p>
+          <ul>
+            <li>Multi-page setup up to 5 pages</li>
+            <li>Lead generation “Get a Quote” form</li>
+            <li>Dynamic gallery up to 20 photos</li>
+            <li>Basic SEO meta tags</li>
+            <li>Smooth scroll animations</li>
+            <li>Everything in Starter Plan</li>
+          </ul>
+          <a class="btn primary" href="#contact">Most Recommended</a>
+        </article>
+
+        <article class="price-card reveal">
+          <span class="ribbon">Exclusive</span>
+          <h3>Flagship Plan</h3>
+          <p class="subtitle">Market Dominator</p>
+          <p class="price">₹20k - ₹25k+</p>
+          <p class="timeline">15 - 20 Days</p>
+          <ul>
+            <li>Up to 10 highly customized pages</li>
+            <li>Advanced local SEO structure</li>
+            <li>Custom booking, enquiry, or dashboard logic</li>
+            <li>High-end scroll and motion effects</li>
+            <li>Live social media feed integration</li>
+            <li>1 month priority support</li>
+          </ul>
+          <a class="btn secondary" href="#contact">Dominate Market</a>
+        </article>
+      </div>
+    </section>
+
+    <section id="process" class="section two-column page" data-page="Process">
+      <div class="glass-panel reveal">
+        <p class="eyebrow">What we need from you</p>
+        <h2>Start development instantly.</h2>
+        <ul class="step-list">
+          <li><span>01</span> High-resolution business logo, preferably PNG with transparent background.</li>
+          <li><span>02</span> Phone, email, physical address, and Google Maps location link.</li>
+          <li><span>03</span> HD product/service photos with names or categories.</li>
+          <li><span>04</span> 3–4 sentences about company history, mission, or specialization.</li>
+          <li><span>05</span> Facebook, Instagram, or YouTube links if applicable.</li>
+        </ul>
+      </div>
+      <div class="glass-panel reveal">
+        <p class="eyebrow">How to proceed</p>
+        <h2>Ready to upgrade your brand?</h2>
+        <ul class="step-list">
+          <li><span>01</span> Select Starter, Growth, or Flagship based on your business goals.</li>
+          <li><span>02</span> Confirm and secure your slot with 50% initial payment.</li>
+          <li><span>03</span> Send raw files through Google Drive or directly on WhatsApp.</li>
+        </ul>
+      </div>
+    </section>
+
+    <section id="policies" class="section page" data-page="Policies">
+      <div class="section-heading center reveal">
+        <p class="eyebrow">Transparent policies</p>
+        <h2>Professional delivery, clear expectations.</h2>
+      </div>
+      <div class="policy-grid reveal">
+        <article><h3>Domain & Hosting</h3><p>Domain name and hosting costs are external and paid by the client separately.</p></article>
+        <article><h3>Payment</h3><p>50% non-refundable advance begins development; remaining 50% is cleared before final live handover.</p></article>
+        <article><h3>Content</h3><p>The client provides logo, written text, and original product photos before the project starts.</p></article>
+        <article><h3>Scope</h3><p>Additional pages or complex features outside the chosen package are billed separately.</p></article>
+        <article><h3>Credit</h3><p>A discreet “Made by Doomsage” footer credit remains unless a white-label fee is negotiated.</p></article>
+      </div>
+    </section>
+
+    <section id="contact" class="section contact page" data-page="Contact">
+      <div class="contact-card reveal">
+        <p class="eyebrow">Get in touch</p>
+        <h2>Let’s build your premium online presence.</h2>
+        <p>Tell us your business type, preferred package, and timeline. We’ll reply with the next steps.</p>
+        <div class="contact-actions">
+          <a class="btn primary" href="https://wa.me/919202800425" target="_blank" rel="noopener">💬 +91 9202800425</a>
+          <a class="btn secondary" href="mailto:doomsage404@gmail.com">✉️ doomsage404@gmail.com</a>
+          <a class="btn secondary" href="https://doomsage.in" target="_blank" rel="noopener">🌐 doomsage.in</a>
         </div>
-        <div class="results-meta" id="username-meta"></div>
-        <div class="results-grid" id="username-results"></div>
-      </section>
+      </div>
+    </section>
+  </main>
 
-      <section class="module" id="phone-module">
-        <h2>Phone Number Intelligence</h2>
-        <form id="phone-form" class="scan-form">
-          <input type="tel" id="phone-input" placeholder="Enter number (e.g., +91XXXXXXXXXX)" required />
-          <button type="submit">Run Phone Recon</button>
-        </form>
-        <div class="results-meta" id="phone-meta"></div>
-        <div class="results-grid" id="phone-results"></div>
-      </section>
-
-      <section class="module" id="email-module">
-        <h2>Email Intelligence</h2>
-        <form id="email-form" class="scan-form">
-          <input type="email" id="email-input" placeholder="Enter email (e.g., kunaldev@gmail.com)" required />
-          <button type="submit">Analyze Email</button>
-        </form>
-        <div class="results-meta" id="email-meta"></div>
-        <div class="results-grid" id="email-results"></div>
-      </section>
-
-      <section class="console-section">
-        <div class="console-header">
-          <h3>Realtime Scan Console</h3>
-          <button id="clear-console" class="ghost-btn">Clear</button>
-        </div>
-        <pre id="scan-console" class="scan-console" aria-live="polite"></pre>
-      </section>
-
-      <section class="summary" id="summary-panel">
-        <h3>OSINT Report Summary</h3>
-        <div class="summary-grid" id="summary-grid">
-          <div><span>Platforms Checked</span><strong>0</strong></div>
-          <div><span>Exact Matches Found</span><strong>0</strong></div>
-          <div><span>Similar Matches Found</span><strong>0</strong></div>
-          <div><span>Possible Identities</span><strong>0</strong></div>
-          <div><span>Scan Time</span><strong>0 ms</strong></div>
-        </div>
-        <button id="export-json" class="ghost-btn">Export Report as JSON</button>
-      </section>
-    </main>
-  </div>
-
+  <a class="float-whatsapp" href="https://wa.me/919202800425" target="_blank" rel="noopener" aria-label="Chat on WhatsApp">💬</a>
+  <a class="float-call" href="tel:+919202800425" aria-label="Call Doomsage">📞</a>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/locomotive-scroll@4.1.4/dist/locomotive-scroll.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <script src="script.js"></script>
 </body>
 </html>
